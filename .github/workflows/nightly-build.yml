@@ -49,19 +49,18 @@ jobs:
           aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: ${{ secrets.AWS_REGION }}
-          aws-account-id: ${{ secrets.AWS_ACCOUNT_ID }}
           aws-session-token: ${{ secrets.AWS_SESSION_TOKEN }}
 
-      # - name: Launch Temporary EC2 Instance
-      #   run: |
-      #     INSTANCE_ID=$(aws ec2 run-instances \
-      #       --image-id ami-12345678 \  # Replace with correct AMI ID
-      #       --instance-type t2.micro \
-      #       --key-name my-key-pair \  # Replace with your key pair
-      #       --security-groups my-security-group \  # Replace with security group
-      #       --query 'Instances[0].InstanceId' --output text)
-      #     echo "INSTANCE_ID=$INSTANCE_ID" >> $GITHUB_ENV
-      #     aws ec2 wait instance-status-ok --instance-ids $INSTANCE_ID
-      #     PUBLIC_IP=$(aws ec2 describe-instances --instance-ids $INSTANCE_ID --query 'Reservations[0].Instances[0].PublicIpAddress' --output text)
-      #     echo "PUBLIC_IP=$PUBLIC_IP" >> $GITHUB_ENV
+      - name: Launch Temporary EC2 Instance
+        run: |
+          INSTANCE_ID=$(aws ec2 run-instances \
+            --image-id ami-05b10e08d247fb927 \
+            --instance-type t2.micro \
+            --key-name my-key-pair \  # Replace with your key pair
+            --security-groups my-security-group \  # Replace with security group
+            --query 'Instances[0].InstanceId' --output text)
+          echo "INSTANCE_ID=$INSTANCE_ID" >> $GITHUB_ENV
+          aws ec2 wait instance-status-ok --instance-ids $INSTANCE_ID
+          PUBLIC_IP=$(aws ec2 describe-instances --instance-ids $INSTANCE_ID --query 'Reservations[0].Instances[0].PublicIpAddress' --output text)
+          echo "PUBLIC_IP=$PUBLIC_IP" >> $GITHUB_ENV
 
