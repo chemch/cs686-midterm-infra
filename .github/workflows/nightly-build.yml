@@ -29,7 +29,7 @@ jobs:
         run: |
           cd source-repo
           cd web-ui
-          ls -al
+          pwd
           npm install
           npm run test
           docker build -t cs686-midterm-web-ui:latest .
@@ -38,7 +38,7 @@ jobs:
         run: |
           cd source-repo
           cd api-server
-          ls -al
+          pwd
           npm run test
           docker build -t cs686-midterm-api-server:latest .
 
