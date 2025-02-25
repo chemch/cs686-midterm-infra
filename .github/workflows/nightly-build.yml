@@ -39,6 +39,7 @@ jobs:
           cd source-repo
           cd api-server
           pwd
+          npm install
           npm run test
           docker build -t cs686-midterm-api-server:latest .
 
