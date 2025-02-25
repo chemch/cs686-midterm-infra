@@ -27,10 +27,18 @@ jobs:
 
       - name: Build and Test Web UI
         run: |
-          ls -al
           cd source-repo
-          ls -al
           cd web-ui
+          ls -al
           npm install
           npm run test
           docker build -t cs686-midterm-web-ui:latest .
+
+      - name: Build and Test API Server
+        run: |
+          cd source-repo
+          cd api-server
+          ls -al
+          npm run test
+          docker build -t cs686-midterm-api-server:latest .
+
