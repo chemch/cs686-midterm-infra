@@ -22,12 +22,12 @@ jobs:
           username: ${{ secrets.DOCKER_USERNAME }}
           password: ${{ secrets.DOCKER_PASSWORD }}
 
-      # - name: Build and Test
-      #   run: |
-      #     docker build -t cs686-midterm:latest .
-      #     docker run --rm cs686-midterm:latest npm run test
+      - name: Build and Test
+        run: |
+          docker build -t cs686-midterm:latest .
+          docker run --rm cs686-midterm:latest npm run test
 
-      # - name: Push to Docker Hub
-      #   run: |
-      #     docker tag cs686-midterm:latest ${{ secrets.DOCKER_USERNAME }}/cs686-midterm:latest
-      #     docker push ${{ secrets.DOCKER_USERNAME }}/cs686-midterm:latest
+      - name: Push to Docker Hub
+        run: |
+          docker tag cs686-midterm:latest ${{ secrets.DOCKER_USERNAME }}/cs686-midterm:latest
+          docker push ${{ secrets.DOCKER_USERNAME }}/cs686-midterm:latest
