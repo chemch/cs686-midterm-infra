@@ -27,6 +27,9 @@ jobs:
 
       - name: Build and Test Web UI
         run: |
+          ls -al
+          cd source-repo
+          ls -al
           cd web-ui
           npm install
           npm run test
