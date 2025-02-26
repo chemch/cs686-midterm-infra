@@ -43,23 +43,40 @@ jobs:
           npm run test
           docker build -t cs686-midterm-api-server:latest .
 
-      - name: Configure AWS Credentials
-        uses: aws-actions/configure-aws-credentials@v2
-        with:
-          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          aws-region: ${{ secrets.AWS_REGION }}
-          aws-session-token: ${{ secrets.AWS_SESSION_TOKEN }}
-
-      - name: Launch Temporary EC2 Instance
+      - name: Push Web UI to Docker Hub
         run: |
-          INSTANCE_ID=$(aws ec2 run-instances \
-            --image-id ami-05b10e08d247fb927 \
-            --instance-type t2.micro \
-            --key-name cs686-midterm-key \
-            --security-groups default \
-            --query 'Instances[0].InstanceId' --output text)
-          echo "INSTANCE_ID=$INSTANCE_ID" >> $GITHUB_ENV
-          aws ec2 wait instance-status-ok --instance-ids $INSTANCE_ID
-          PUBLIC_IP=$(aws ec2 describe-instances --instance-ids $INSTANCE_ID --query 'Reservations[0].Instances[0].PublicIpAddress' --output text)
-          echo "PUBLIC_IP=$PUBLIC_IP" >> $GITHUB_ENV
+          docker tag cs686-midterm-web-ui:latest ${{ secrets.DOCKER_USERNAME }}/cs686-midterm-web-ui:latest
+          docker push ${{ secrets.DOCKER_USERNAME }}/cs686-midterm-web-ui:latest
+
+      - name: Push API Server to Docker Hub
+        run: |
+          docker tag cs686-midterm-api-server:latest ${{ secrets.DOCKER_USERNAME }}/cs686-midterm-api-server:latest
+          docker push ${{ secrets.DOCKER_USERNAME }}/cs686-midterm-api-server:latest
+
+
+      # - name: Configure AWS Credentials
+      #   uses: aws-actions/configure-aws-credentials@v2
+      #   with:
+      #     aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+      #     aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+      #     aws-region: ${{ secrets.AWS_REGION }}
+      #     aws-session-token: ${{ secrets.AWS_SESSION_TOKEN }}
+
+      # - name: Launch Temporary EC2 Instance
+      #   run: |
+      #     INSTANCE_ID=$(aws ec2 run-instances \
+      #       --image-id ami-05b10e08d247fb927 \
+      #       --instance-type t2.micro \
+      #       --key-name cs686-midterm-key \
+      #       --security-groups default \
+      #       --query 'Instances[0].InstanceId' --output text)
+      #     echo "INSTANCE_ID=$INSTANCE_ID" >> $GITHUB_ENV
+      #     aws ec2 wait instance-status-ok --instance-ids $INSTANCE_ID
+      #     PUBLIC_IP=$(aws ec2 describe-instances --instance-ids $INSTANCE_ID --query 'Reservations[0].Instances[0].PublicIpAddress' --output text)
+      #     echo "PUBLIC_IP=$PUBLIC_IP" >> $GITHUB_ENV
+
+      # - name: Deploy App to EC2
+      #   run: |
+      #     scp -o StrictHostKeyChecking=no -i my-key.pem ./deploy.sh ec2-user@$PUBLIC_IP:/home/ec2-user/deploy.sh
+      #     ssh -o StrictHostKeyChecking=no -i my-key.pem ec2-user@$PUBLIC_IP "bash /home/ec2-user/deploy.sh"
+
