@@ -10,11 +10,8 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Clone Source Repository
-        run: |
-          git clone https://github.com/chemch/cs686-midterm-source.git source-repo
-          cd source-repo
-          git checkout main
+      - name: Checkout Repository
+        uses: actions/checkout@v4
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v2
@@ -25,33 +22,27 @@ jobs:
           username: ${{ secrets.DOCKER_USERNAME }}
           password: ${{ secrets.DOCKER_PASSWORD }}
 
-      - name: Build and Test Web UI
-        run: |
-          cd source-repo
-          cd web-ui
-          pwd
-          npm install
-          npm run test
-          docker build -t cs686-midterm-web-ui:latest .
+      - name: Cache Node.js dependencies
+        uses: actions/cache@v3
+        with:
+          path: ~/.npm
+          key: ${{ runner.os }}-npm-${{ hashFiles('**/package-lock.json') }}
+          restore-keys: |
+            ${{ runner.os }}-npm-
 
-      - name: Build and Test API Server
-        run: |
-          cd source-repo
-          cd api-server
-          pwd
-          npm install
-          npm run test
-          docker build -t cs686-midterm-api-server:latest .
+      - name: Build and Push Web UI
+        uses: docker/build-push-action@v5
+        with:
+          context: ./web-ui
+          push: true
+          tags: ${{ secrets.DOCKER_USERNAME }}/cs686-midterm-web-ui:latest
 
-      - name: Push Web UI to Docker Hub
-        run: |
-          docker tag cs686-midterm-web-ui:latest ${{ secrets.DOCKER_USERNAME }}/cs686-midterm-web-ui:latest
-          docker push ${{ secrets.DOCKER_USERNAME }}/cs686-midterm-web-ui:latest
-
-      - name: Push API Server to Docker Hub
-        run: |
-          docker tag cs686-midterm-api-server:latest ${{ secrets.DOCKER_USERNAME }}/cs686-midterm-api-server:latest
-          docker push ${{ secrets.DOCKER_USERNAME }}/cs686-midterm-api-server:latest
+      - name: Build and Push API Server
+        uses: docker/build-push-action@v5
+        with:
+          context: ./api-server
+          push: true
+          tags: ${{ secrets.DOCKER_USERNAME }}/cs686-midterm-api-server:latest
 
       - name: Configure AWS Credentials
         uses: aws-actions/configure-aws-credentials@v2
@@ -59,23 +50,48 @@ jobs:
           aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: ${{ secrets.AWS_REGION }}
-          aws-session-token: ${{ secrets.AWS_SESSION_TOKEN }}
 
-      # - name: Launch Temporary EC2 Instance
+      - name: Launch Temporary EC2 Instance
+        run: |
+          INSTANCE_ID=$(aws ec2 run-instances \
+            --image-id ami-05b10e08d247fb927 \
+            --instance-type t2.micro \
+            --key-name cs686-midterm-key \
+            --security-groups default \
+            --query 'Instances[0].InstanceId' --output text)
+          echo "INSTANCE_ID=$INSTANCE_ID" >> $GITHUB_ENV
+          aws ec2 wait instance-running --instance-ids $INSTANCE_ID
+
+          PUBLIC_IP=$(aws ec2 describe-instances --instance-ids $INSTANCE_ID --query 'Reservations[0].Instances[0].PublicIpAddress' --output text)
+          echo "PUBLIC_IP=$PUBLIC_IP" >> $GITHUB_ENV
+
+          for i in {1..10}; do
+            nc -zv $PUBLIC_IP 22 && break
+            echo "Waiting for SSH to become available..."
+            sleep 5
+          done
+
+      # - name: Upload Deploy Script to EC2
       #   run: |
-      #     INSTANCE_ID=$(aws ec2 run-instances \
-      #       --image-id ami-05b10e08d247fb927 \
-      #       --instance-type t2.micro \
-      #       --key-name cs686-midterm-key \
-      #       --security-groups default \
-      #       --query 'Instances[0].InstanceId' --output text)
-      #     echo "INSTANCE_ID=$INSTANCE_ID" >> $GITHUB_ENV
-      #     aws ec2 wait instance-status-ok --instance-ids $INSTANCE_ID
-      #     PUBLIC_IP=$(aws ec2 describe-instances --instance-ids $INSTANCE_ID --query 'Reservations[0].Instances[0].PublicIpAddress' --output text)
-      #     echo "PUBLIC_IP=$PUBLIC_IP" >> $GITHUB_ENV
+      #     scp -o StrictHostKeyChecking=no -i my-key.pem scripts/deploy.sh ec2-user@$PUBLIC_IP:/home/ec2-user/deploy.sh
+      #     ssh -o StrictHostKeyChecking=no -i my-key.pem ec2-user@$PUBLIC_IP "chmod +x /home/ec2-user/deploy.sh"
 
-      # - name: Deploy App to EC2
-      #   run: |
-      #     scp -o StrictHostKeyChecking=no -i my-key.pem ./deploy.sh ec2-user@$PUBLIC_IP:/home/ec2-user/deploy.sh
-      #     ssh -o StrictHostKeyChecking=no -i my-key.pem ec2-user@$PUBLIC_IP "bash /home/ec2-user/deploy.sh"
+      # - name: Run Smoke Tests
+      #   run: ssh -o StrictHostKeyChecking=no -i my-key.pem ec2-user@$PUBLIC_IP "curl -f http://localhost:3000/health || exit 1"
 
+      - name: Terminate EC2 Instance
+        if: always()
+        run: aws ec2 terminate-instances --instance-ids $INSTANCE_ID
+
+  # push-to-ecr:
+  #   needs: deploy-and-test
+  #   runs-on: ubuntu-latest
+
+  #   steps:
+  #     - name: Log in to Amazon ECR
+  #       uses: aws-actions/amazon-ecr-login@v1
+
+  #     - name: Build and Push to ECR
+  #       run: |
+  #         docker build -t ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ secrets.AWS_REGION }}.amazonaws.com/cs686-app:latest .
+  #         docker push ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ secrets.AWS_REGION }}.amazonaws.com/cs686-app:latest
