@@ -53,14 +53,13 @@ jobs:
           docker tag cs686-midterm-api-server:latest ${{ secrets.DOCKER_USERNAME }}/cs686-midterm-api-server:latest
           docker push ${{ secrets.DOCKER_USERNAME }}/cs686-midterm-api-server:latest
 
-
-      # - name: Configure AWS Credentials
-      #   uses: aws-actions/configure-aws-credentials@v2
-      #   with:
-      #     aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
-      #     aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-      #     aws-region: ${{ secrets.AWS_REGION }}
-      #     aws-session-token: ${{ secrets.AWS_SESSION_TOKEN }}
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v2
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ secrets.AWS_REGION }}
+          aws-session-token: ${{ secrets.AWS_SESSION_TOKEN }}
 
       # - name: Launch Temporary EC2 Instance
       #   run: |
