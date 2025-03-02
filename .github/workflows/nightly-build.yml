@@ -67,21 +67,21 @@ jobs:
           docker tag cs686-midterm-api-server:latest $ECR_URI:latest
           docker push $ECR_URI:latest
 
-      #  - name: Deploy to EC2 Instance
-      #   run: |
-      #     ssh -o StrictHostKeyChecking=no -i ${{ secrets.EC2_SSH_PRIVATE_KEY }} ec2-user@${{ secrets.EC2_PUBLIC_IP }} << 'EOF'
-      #       set -e
+      - name: Deploy to QA EC2 Instance
+      run: |
+        ssh -o StrictHostKeyChecking=no -i ${{ secrets.EC2_SSH_PRIVATE_KEY }} ec2-user@${{ secrets.EC2_PUBLIC_IP }} << 'EOF'
+          set -e
 
-      #       # Pull latest images
-      #       aws ecr get-login-password --region ${{ secrets.AWS_REGION }} | docker login --username AWS --password-stdin ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ secrets.AWS_REGION }}.amazonaws.com
-            
-      #       # Stop and remove existing containers
-      #       cd /home/ec2-user/my-app
-      #       docker-compose down
-            
-      #       # Pull latest images
-      #       docker-compose pull
-            
-      #       # Start services
-      #       docker-compose up -d
-      #     EOF
+          # Pull latest images
+          aws ecr get-login-password --region ${{ secrets.AWS_REGION }} | docker login --username AWS --password-stdin ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ secrets.AWS_REGION }}.amazonaws.com
+          
+          # Stop and remove existing containers
+          cd /home/ec2-user/my-app
+          docker-compose down
+          
+          # Pull latest images
+          docker-compose pull
+          
+          # Start services
+          docker-compose up -d
+        EOF
