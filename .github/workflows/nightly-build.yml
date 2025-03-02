@@ -67,21 +67,15 @@ jobs:
           docker tag cs686-midterm-api-server:latest $ECR_URI:latest
           docker push $ECR_URI:latest
 
-      - name: Deploy to QA EC2 Instance
-        run: |
-          ssh -o StrictHostKeyChecking=no -i ${{ secrets.EC2_SSH_PRIVATE_KEY }} ec2-user@${{ secrets.EC2_PUBLIC_IP }} << 'EOF'
-            set -e
-
-            # Pull latest images
-            aws ecr get-login-password --region ${{ secrets.AWS_REGION }} | docker login --username AWS --password-stdin ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ secrets.AWS_REGION }}.amazonaws.com
-            
-            # Stop and remove existing containers
-            cd /home/ec2-user/my-app
-            docker-compose down
-            
-            # Pull latest images
-            docker-compose pull
-            
-            # Start services
-            docker-compose up -d --build
-          EOF
+    - name: Deploy to EC2
+      uses: appleboy/ssh-action@v0.1.10
+      with:
+        host: ${{ secrets.EC2_PUBLIC_IP }}
+        username: ec2-user
+        key: ${{ secrets.EC2_SSH_PRIVATE_KEY }}
+        script: |
+          set -e
+          cd /home/ec2-user/my-app
+          docker-compose down
+          docker-compose pull
+          docker-compose up -d
