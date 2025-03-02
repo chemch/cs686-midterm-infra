@@ -141,22 +141,22 @@ jobs:
           fi
           echo "Smoke test passed!"
 
-      - name: Terminate Temporary EC2 Instance
-        if: always()
-        run: |
-          aws ec2 terminate-instances --instance-ids ${{ env.INSTANCE_ID }}
-          aws ec2 wait instance-terminated --instance-ids ${{ env.INSTANCE_ID }}
+      # - name: Terminate Temporary EC2 Instance
+      #   if: always()
+      #   run: |
+      #     aws ec2 terminate-instances --instance-ids ${{ env.INSTANCE_ID }}
+      #     aws ec2 wait instance-terminated --instance-ids ${{ env.INSTANCE_ID }}
 
-      - name: Deploy to EC2 QA Instance
-        if: success()
-        uses: appleboy/ssh-action@v0.1.10
-        with:
-          host: ${{ secrets.EC2_PUBLIC_IP }}
-          username: ec2-user
-          key: ${{ secrets.EC2_SSH_PRIVATE_KEY }}
-          script: |
-            set -e
-            cd /home/ec2-user/my-app
-            docker-compose down
-            docker-compose pull
-            docker-compose up -d
+      # - name: Deploy to EC2 QA Instance
+      #   if: success()
+      #   uses: appleboy/ssh-action@v0.1.10
+      #   with:
+      #     host: ${{ secrets.EC2_PUBLIC_IP }}
+      #     username: ec2-user
+      #     key: ${{ secrets.EC2_SSH_PRIVATE_KEY }}
+      #     script: |
+      #       set -e
+      #       cd /home/ec2-user/my-app
+      #       docker-compose down
+      #       docker-compose pull
+      #       docker-compose up -d
