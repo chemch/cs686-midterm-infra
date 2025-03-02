@@ -15,6 +15,7 @@ jobs:
           git clone https://github.com/chemch/cs686-midterm-source.git source-repo
           cd source-repo
           git checkout main
+          ls -al
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v2
@@ -50,6 +51,7 @@ jobs:
       - name: Build and Test API Server
         run: |
           cd source-repo/api-server
+          ls -al
           pwd
           npm install
           npm run test
@@ -101,6 +103,9 @@ jobs:
 
           # Debug: Verify files exist
           ls -l source-repo/
+          echo "Copying files to EC2 at ${{ secrets.EC2_PUBLIC_IP }}"
+          echo source-repo/docker-compose.yml
+          echo source-repo/.env
 
           # ✅ Copy files from the correct directory
           scp -o StrictHostKeyChecking=no -i private_key.pem source-repo/docker-compose.yml ec2-user@${{ secrets.EC2_PUBLIC_IP }}:/home/ec2-user/my-app/docker-compose.yml
