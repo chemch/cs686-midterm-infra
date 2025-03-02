@@ -36,38 +36,38 @@ jobs:
           aws-region: ${{ secrets.AWS_REGION }}
           aws-session-token: ${{ secrets.AWS_SESSION_TOKEN }}
 
-      - name: Log in to AWS ECR
-        run: |
-          aws ecr get-login-password --region ${{ secrets.AWS_REGION }} | docker login --username AWS --password-stdin ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ secrets.AWS_REGION }}.amazonaws.com
+      # - name: Log in to AWS ECR
+      #   run: |
+      #     aws ecr get-login-password --region ${{ secrets.AWS_REGION }} | docker login --username AWS --password-stdin ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ secrets.AWS_REGION }}.amazonaws.com
 
-      - name: Build and Test Web UI
-        run: |
-          cd source-repo/web-ui
-          pwd
-          npm install
-          npm run test
-          docker build -t cs686-midterm-web-ui:latest .
+      # - name: Build and Test Web UI
+      #   run: |
+      #     cd source-repo/web-ui
+      #     pwd
+      #     npm install
+      #     npm run test
+      #     docker build -t cs686-midterm-web-ui:latest .
 
-      - name: Build and Test API Server
-        run: |
-          cd source-repo/api-server
-          ls -al
-          pwd
-          npm install
-          npm run test
-          docker build -t cs686-midterm-api-server:latest .
+      # - name: Build and Test API Server
+      #   run: |
+      #     cd source-repo/api-server
+      #     ls -al
+      #     pwd
+      #     npm install
+      #     npm run test
+      #     docker build -t cs686-midterm-api-server:latest .
 
-      - name: Tag and Push Web UI to AWS ECR
-        run: |
-          ECR_URI=${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ secrets.AWS_REGION }}.amazonaws.com/cs686-midterm-web-ui
-          docker tag cs686-midterm-web-ui:latest $ECR_URI:latest
-          docker push $ECR_URI:latest
+      # - name: Tag and Push Web UI to AWS ECR
+      #   run: |
+      #     ECR_URI=${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ secrets.AWS_REGION }}.amazonaws.com/cs686-midterm-web-ui
+      #     docker tag cs686-midterm-web-ui:latest $ECR_URI:latest
+      #     docker push $ECR_URI:latest
 
-      - name: Tag and Push API Server to AWS ECR
-        run: |
-          ECR_URI=${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ secrets.AWS_REGION }}.amazonaws.com/cs686-midterm-api-server
-          docker tag cs686-midterm-api-server:latest $ECR_URI:latest
-          docker push $ECR_URI:latest
+      # - name: Tag and Push API Server to AWS ECR
+      #   run: |
+      #     ECR_URI=${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ secrets.AWS_REGION }}.amazonaws.com/cs686-midterm-api-server
+      #     docker tag cs686-midterm-api-server:latest $ECR_URI:latest
+      #     docker push $ECR_URI:latest
       
       - name: Launch Temporary EC2 Instance
         id: launch-ec2
@@ -96,64 +96,46 @@ jobs:
           echo "Temporary EC2 Public IP: $TEMP_IP"
           echo "TEMP_IP=$TEMP_IP" >> $GITHUB_ENV
 
-      - name: Copy Docker Compose and .env File to EC2
-        run: |
-          echo "${{ secrets.EC2_SSH_PRIVATE_KEY }}" > private_key.pem
-          chmod 600 private_key.pem
+      - name: Deploy to Temporary EC2 for Smoke Test
+        uses: appleboy/ssh-action@v0.1.10
+        with:
+          host: ${{ env.TEMP_IP }}
+          username: ec2-user
+          key: ${{ secrets.EC2_SSH_PRIVATE_KEY }}
+          script: |
+            set -e
+            sudo yum install -y docker
+            sudo service docker start
+            sudo usermod -aG docker ec2-user
 
-          # Debug: Verify files exist
-          ls -l source-repo/
-          echo "Copying files to EC2 at ${{ secrets.EC2_PUBLIC_IP }}"
-          echo source-repo/docker-compose.yml
-          echo source-repo/.env
-
-          # ✅ Copy files from the correct directory
-          scp -o StrictHostKeyChecking=no -i private_key.pem source-repo/docker-compose.yml ec2-user@${{ secrets.EC2_PUBLIC_IP }}:/home/ec2-user/my-app/docker-compose.yml
-          #scp -o StrictHostKeyChecking=no -i private_key.pem source-repo/.env ec2-user@${{ secrets.EC2_PUBLIC_IP }}:/home/ec2-user/my-app/.env
-
-          # Remove the key for security
-          rm private_key.pem
-
-      # - name: Deploy to Temporary EC2 for Smoke Test - Part 1
-      #   uses: appleboy/ssh-action@v0.1.10
-      #   with:
-      #     host: ${{ env.TEMP_IP }}
-      #     username: ec2-user
-      #     key: ${{ secrets.EC2_SSH_PRIVATE_KEY }}
-      #     script: |
-      #       set -e
-      #       sudo yum install -y docker
-      #       sudo service docker start
-      #       sudo usermod -aG docker ec2-user
-
-      #       # Install Docker Compose
-      #       DOCKER_COMPOSE_VERSION="2.20.3"
-      #       sudo curl -L "https://github.com/docker/compose/releases/download/v${DOCKER_COMPOSE_VERSION}/docker-compose-linux-x86_64" -o /usr/local/bin/docker-compose
-      #       sudo chmod +x /usr/local/bin/docker-compose
+            # Install Docker Compose
+            DOCKER_COMPOSE_VERSION="2.20.3"
+            sudo curl -L "https://github.com/docker/compose/releases/download/v${DOCKER_COMPOSE_VERSION}/docker-compose-linux-x86_64" -o /usr/local/bin/docker-compose
+            sudo chmod +x /usr/local/bin/docker-compose
             
-      #       # Ensure the symlink is created with sudo
-      #       sudo ln -sf /usr/local/bin/docker-compose /usr/bin/docker-compose  
+            # Ensure the symlink is created with sudo
+            sudo ln -sf /usr/local/bin/docker-compose /usr/bin/docker-compose  
             
-      #       # Verify Docker Compose installation
-      #       docker-compose --version
+            # Verify Docker Compose installation
+            docker-compose --version
 
-      #       # Add SSH option to automatically accept the fingerprint
-      #       export SSH_OPTIONS="-o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null"
+            # Add SSH option to automatically accept the fingerprint
+            export SSH_OPTIONS="-o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null"
             
-      #       # Set AWS credentials
-      #       export AWS_ACCESS_KEY_ID=${{ secrets.AWS_ACCESS_KEY_ID }}
-      #       export AWS_SECRET_ACCESS_KEY=${{ secrets.AWS_SECRET_ACCESS_KEY }}
-      #       export AWS_SESSION_TOKEN=${{ secrets.AWS_SESSION_TOKEN }}
-      #       export AWS_REGION=${{ secrets.AWS_REGION }}
+            # Set AWS credentials
+            export AWS_ACCESS_KEY_ID=${{ secrets.AWS_ACCESS_KEY_ID }}
+            export AWS_SECRET_ACCESS_KEY=${{ secrets.AWS_SECRET_ACCESS_KEY }}
+            export AWS_SESSION_TOKEN=${{ secrets.AWS_SESSION_TOKEN }}
+            export AWS_REGION=${{ secrets.AWS_REGION }}
 
-      #       # Verify AWS authentication
-      #       aws sts get-caller-identity
+            # Verify AWS authentication
+            aws sts get-caller-identity
 
-      #       # Log in to AWS ECR
-      #       aws ecr get-login-password --region $AWS_REGION | docker login --username AWS --password-stdin ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ secrets.AWS_REGION }}.amazonaws.com
+            # Log in to AWS ECR
+            aws ecr get-login-password --region $AWS_REGION | docker login --username AWS --password-stdin ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ secrets.AWS_REGION }}.amazonaws.com
             
-      #       # Create a directory for the application
-      #       mkdir -p /home/ec2-user/my-app
+            # Create a directory for the application
+            mkdir -p /home/ec2-user/my-app
 
       # - name: Deploy to Temporary EC2 for Smoke Test - Part 2
       #   uses: appleboy/ssh-action@v0.1.10
