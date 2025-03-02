@@ -99,16 +99,14 @@ jobs:
           echo "${{ secrets.EC2_SSH_PRIVATE_KEY }}" > private_key.pem
           chmod 600 private_key.pem
 
-          # Debug: Check if files exist
-          ls -l $GITHUB_WORKSPACE
+          # Debug: Verify files exist
+          ls -l source-repo/
 
-          # Copy docker-compose.yml
+          # ✅ Copy files from the correct directory
           scp -o StrictHostKeyChecking=no -i private_key.pem source-repo/docker-compose.yml ec2-user@${{ secrets.EC2_PUBLIC_IP }}:/home/ec2-user/my-app/docker-compose.yml
+          #scp -o StrictHostKeyChecking=no -i private_key.pem source-repo/.env ec2-user@${{ secrets.EC2_PUBLIC_IP }}:/home/ec2-user/my-app/.env
 
-          # Copy .env file
-          scp -o StrictHostKeyChecking=no -i private_key.pem source-repo/.env ec2-user@${{ secrets.EC2_PUBLIC_IP }}:/home/ec2-user/my-app/.env
-
-          # Remove the SSH private key for security
+          # Remove the key for security
           rm private_key.pem
 
       # - name: Deploy to Temporary EC2 for Smoke Test - Part 1
