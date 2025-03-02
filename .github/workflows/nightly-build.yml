@@ -103,10 +103,10 @@ jobs:
           ls -l $GITHUB_WORKSPACE
 
           # Copy docker-compose.yml
-          scp -o StrictHostKeyChecking=no -i private_key.pem $GITHUB_WORKSPACE/source-repo/docker-compose.yml ec2-user@${{ secrets.EC2_PUBLIC_IP }}:/home/ec2-user/my-app/docker-compose.yml
+          scp -o StrictHostKeyChecking=no -i private_key.pem source-repo/docker-compose.yml ec2-user@${{ secrets.EC2_PUBLIC_IP }}:/home/ec2-user/my-app/docker-compose.yml
 
           # Copy .env file
-          scp -o StrictHostKeyChecking=no -i private_key.pem $GITHUB_WORKSPACE/source-repo/.env ec2-user@${{ secrets.EC2_PUBLIC_IP }}:/home/ec2-user/my-app/.env
+          scp -o StrictHostKeyChecking=no -i private_key.pem source-repo/.env ec2-user@${{ secrets.EC2_PUBLIC_IP }}:/home/ec2-user/my-app/.env
 
           # Remove the SSH private key for security
           rm private_key.pem
