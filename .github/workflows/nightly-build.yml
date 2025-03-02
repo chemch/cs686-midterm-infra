@@ -66,8 +66,70 @@ jobs:
           ECR_URI=${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ secrets.AWS_REGION }}.amazonaws.com/cs686-midterm-api-server
           docker tag cs686-midterm-api-server:latest $ECR_URI:latest
           docker push $ECR_URI:latest
+      
+      - name: Launch Temporary EC2 Instance
+        id: launch-ec2
+        run: |
+          INSTANCE_ID=$(aws ec2 run-instances \
+            --image-id ${{ secrets.AWS_AMI_ID }} \
+            --count 1 \
+            --instance-type t2.micro \
+            --key-name ${{ secrets.AWS_KEY_PAIR }} \
+            --security-groups ${{ secrets.AWS_SECURITY_GROUP }} \
+            --query 'Instances[0].InstanceId' \
+            --output text)
 
-      - name: Deploy to EC2
+          echo "Temporary EC2 Instance ID: $INSTANCE_ID"
+          echo "INSTANCE_ID=$INSTANCE_ID" >> $GITHUB_ENV
+
+          # Wait for the instance to start
+          aws ec2 wait instance-running --instance-ids $INSTANCE_ID
+
+          # Get the public IP of the instance
+          TEMP_IP=$(aws ec2 describe-instances \
+            --instance-ids $INSTANCE_ID \
+            --query 'Reservations[0].Instances[0].PublicIpAddress' \
+            --output text)
+
+          echo "Temporary EC2 Public IP: $TEMP_IP"
+          echo "TEMP_IP=$TEMP_IP" >> $GITHUB_ENV
+
+      - name: Deploy to Temporary EC2 for Smoke Test
+        uses: appleboy/ssh-action@v0.1.10
+        with:
+          host: ${{ env.TEMP_IP }}
+          username: ec2-user
+          key: ${{ secrets.EC2_SSH_PRIVATE_KEY }}
+          script: |
+            set -e
+            sudo yum install -y docker
+            sudo service docker start
+            sudo usermod -aG docker ec2-user
+            aws ecr get-login-password --region ${{ secrets.AWS_REGION }} | docker login --username AWS --password-stdin ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ secrets.AWS_REGION }}.amazonaws.com
+            mkdir -p /home/ec2-user/my-app
+            cd /home/ec2-user/my-app
+            docker-compose down
+            docker-compose pull
+            docker-compose up -d
+
+      - name: Run Smoke Test
+        run: |
+          sleep 20  # Allow some time for services to start
+          RESPONSE=$(curl -s -o /dev/null -w "%{http_code}" http://${{ env.TEMP_IP }}:4001/)
+          if [ "$RESPONSE" -ne 200 ]; then
+            echo "Smoke test failed!"
+            exit 1
+          fi
+          echo "Smoke test passed!"
+
+      - name: Terminate Temporary EC2 Instance
+        if: always()
+        run: |
+          aws ec2 terminate-instances --instance-ids ${{ env.INSTANCE_ID }}
+          aws ec2 wait instance-terminated --instance-ids ${{ env.INSTANCE_ID }}
+
+      - name: Deploy to EC2 QA Instance
+        if: success()
         uses: appleboy/ssh-action@v0.1.10
         with:
           host: ${{ secrets.EC2_PUBLIC_IP }}
