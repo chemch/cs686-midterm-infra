@@ -150,11 +150,10 @@ jobs:
             mkdir -p /home/ec2-user/my-app
            
             # Write the .env file
-            echo environment file content: $ENV_CONTENT |||||| "${{ env.ENV_CONTENT }}" 
+            echo environment file content: "${{ env.ENV_CONTENT }}" | base64 --decode 
             echo "${{ env.ENV_CONTENT }}" | base64 --decode > /home/ec2-user/my-app/.env
 
             # Decode and write the docker-compose.yml file
-            echo docker-compose file content: $DOCKER_COMPOSE_CONTENT |||||| "${{ env.DOCKER_COMPOSE_CONTENT }}"
             echo "${{ env.DOCKER_COMPOSE_CONTENT }}" | base64 --decode > /home/ec2-user/my-app/docker-compose.yml
 
       # - name: Deploy to Temporary EC2 for Smoke Test - Part 2
