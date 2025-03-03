@@ -8,8 +8,7 @@ services:
       VITE_API_HOST: localhost
       VITE_API_PORT: 4001
       VITE_LOCAL_BUILD: "true"
-    build:
-      context: 069671497953.dkr.ecr.us-east-1.amazonaws.com/cs686-midterm-web-ui:latest
+    image: 069671497953.dkr.ecr.us-east-1.amazonaws.com/cs686-midterm-web-ui:latest
     ports:
       - "6001:6666"
     depends_on:
@@ -20,8 +19,7 @@ services:
     restart: always
 
   api-backend:
-    build:
-      context: 069671497953.dkr.ecr.us-east-1.amazonaws.com/cs686-midterm-api-server:latest
+    image: 069671497953.dkr.ecr.us-east-1.amazonaws.com/cs686-midterm-api-server:latest
     ports:
       - "4001:4444"
     environment:

@@ -173,7 +173,7 @@ jobs:
               docker-compose up -d --build
 
               # run smoke test
-              sleep 20  # Allow some time for services to start
+              sleep 35  # Allow some time for services to start
               RESPONSE=$(curl -s -o /dev/null -w "%{http_code}" http://${{ env.TEMP_IP }}:4001/)
               if [ "$RESPONSE" -ne 200 ]; then
                 echo "Smoke test failed!"
