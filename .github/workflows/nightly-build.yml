@@ -17,6 +17,13 @@ jobs:
           git checkout main
           ls -al
 
+      - name: Clone Infra Repository
+        run: |
+          git clone https://github.com/chemch/cs686-midterm-infra.git infra-repo
+          cd infra-repo
+          git checkout main
+          ls -al 
+
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v2
 
@@ -36,38 +43,38 @@ jobs:
           aws-region: ${{ secrets.AWS_REGION }}
           aws-session-token: ${{ secrets.AWS_SESSION_TOKEN }}
 
-      # - name: Log in to AWS ECR
-      #   run: |
-      #     aws ecr get-login-password --region ${{ secrets.AWS_REGION }} | docker login --username AWS --password-stdin ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ secrets.AWS_REGION }}.amazonaws.com
+      - name: Log in to AWS ECR
+        run: |
+          aws ecr get-login-password --region ${{ secrets.AWS_REGION }} | docker login --username AWS --password-stdin ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ secrets.AWS_REGION }}.amazonaws.com
 
-      # - name: Build and Test Web UI
-      #   run: |
-      #     cd source-repo/web-ui
-      #     pwd
-      #     npm install
-      #     npm run test
-      #     docker build -t cs686-midterm-web-ui:latest .
+      - name: Build and Test Web UI
+        run: |
+          cd source-repo/web-ui
+          pwd
+          npm install
+          npm run test
+          docker build -t cs686-midterm-web-ui:latest .
 
-      # - name: Build and Test API Server
-      #   run: |
-      #     cd source-repo/api-server
-      #     ls -al
-      #     pwd
-      #     npm install
-      #     npm run test
-      #     docker build -t cs686-midterm-api-server:latest .
+      - name: Build and Test API Server
+        run: |
+          cd source-repo/api-server
+          ls -al
+          pwd
+          npm install
+          npm run test
+          docker build -t cs686-midterm-api-server:latest .
 
-      # - name: Tag and Push Web UI to AWS ECR
-      #   run: |
-      #     ECR_URI=${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ secrets.AWS_REGION }}.amazonaws.com/cs686-midterm-web-ui
-      #     docker tag cs686-midterm-web-ui:latest $ECR_URI:latest
-      #     docker push $ECR_URI:latest
+      - name: Tag and Push Web UI to AWS ECR
+        run: |
+          ECR_URI=${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ secrets.AWS_REGION }}.amazonaws.com/cs686-midterm-web-ui
+          docker tag cs686-midterm-web-ui:latest $ECR_URI:latest
+          docker push $ECR_URI:latest
 
-      # - name: Tag and Push API Server to AWS ECR
-      #   run: |
-      #     ECR_URI=${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ secrets.AWS_REGION }}.amazonaws.com/cs686-midterm-api-server
-      #     docker tag cs686-midterm-api-server:latest $ECR_URI:latest
-      #     docker push $ECR_URI:latest
+      - name: Tag and Push API Server to AWS ECR
+        run: |
+          ECR_URI=${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ secrets.AWS_REGION }}.amazonaws.com/cs686-midterm-api-server
+          docker tag cs686-midterm-api-server:latest $ECR_URI:latest
+          docker push $ECR_URI:latest
       
       - name: Launch Temporary EC2 Instance
         id: launch-ec2
@@ -136,13 +143,6 @@ jobs:
             
             # Create a directory for the application
             mkdir -p /home/ec2-user/my-app
-
-      - name: Clone Infra Repository
-        run: |
-          git clone https://github.com/chemch/cs686-midterm-infra.git infra-repo
-          cd infra-repo
-          git checkout main
-          ls -al 
            
       - name: Copy .env and docker-compose.yml to EC2
         run: |
@@ -187,16 +187,16 @@ jobs:
       #     aws ec2 terminate-instances --instance-ids ${{ env.INSTANCE_ID }}
       #     aws ec2 wait instance-terminated --instance-ids ${{ env.INSTANCE_ID }}
 
-      # - name: Deploy to EC2 QA Instance
-      #   if: success()
-      #   uses: appleboy/ssh-action@v0.1.10
-      #   with:
-      #     host: ${{ secrets.EC2_PUBLIC_IP }}
-      #     username: ec2-user
-      #     key: ${{ secrets.EC2_SSH_PRIVATE_KEY }}
-      #     script: |
-      #       set -e
-      #       cd /home/ec2-user/my-app
-      #       docker-compose down
-      #       docker-compose pull
-      #       docker-compose up -d
+      - name: Deploy to EC2 QA Instance
+        if: success()
+        uses: appleboy/ssh-action@v0.1.10
+        with:
+          host: ${{ secrets.EC2_PUBLIC_IP }}
+          username: ec2-user
+          key: ${{ secrets.EC2_SSH_PRIVATE_KEY }}
+          script: |
+            set -e
+            cd /home/ec2-user/my-app
+            docker-compose down
+            docker-compose pull
+            docker-compose up -d
