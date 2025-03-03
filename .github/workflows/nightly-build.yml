@@ -199,11 +199,40 @@ jobs:
               fi
               echo "Smoke test passed!"
 
-      # - name: Terminate Temporary EC2 Instance
-      #   if: always()
-      #   run: |
-      #     aws ec2 terminate-instances --instance-ids ${{ env.INSTANCE_ID }}
-      #     aws ec2 wait instance-terminated --instance-ids ${{ env.INSTANCE_ID }}
+      - name: Terminate Temporary EC2 Instance
+        if: always()
+        run: |
+          aws ec2 terminate-instances --instance-ids ${{ env.INSTANCE_ID }}
+          aws ec2 wait instance-terminated --instance-ids ${{ env.INSTANCE_ID }}
+
+      - name: Remove Latest ECR Images on Test Failure
+        if: failure()
+        run: |
+          echo "Smoke test failed! Removing latest images from ECR..."
+          
+          # Get the latest image digest for Web UI
+          WEB_UI_DIGEST=$(aws ecr list-images --repository-name cs686-midterm-web-ui \
+            --region ${{ secrets.AWS_REGION }} --query 'imageIds[-1].imageDigest' --output text)
+          
+          if [ "$WEB_UI_DIGEST" != "None" ]; then
+            echo "Deleting Web UI image: $WEB_UI_DIGEST"
+            aws ecr batch-delete-image --repository-name cs686-midterm-web-ui \
+              --region ${{ secrets.AWS_REGION }} --image-ids imageDigest=$WEB_UI_DIGEST
+          else
+            echo "No Web UI images found to delete."
+          fi
+
+          # Get the latest image digest for API Server
+          API_SERVER_DIGEST=$(aws ecr list-images --repository-name cs686-midterm-api-server \
+            --region ${{ secrets.AWS_REGION }} --query 'imageIds[-1].imageDigest' --output text)
+          
+          if [ "$API_SERVER_DIGEST" != "None" ]; then
+            echo "Deleting API Server image: $API_SERVER_DIGEST"
+            aws ecr batch-delete-image --repository-name cs686-midterm-api-server \
+              --region ${{ secrets.AWS_REGION }} --image-ids imageDigest=$API_SERVER_DIGEST
+          else
+            echo "No API Server images found to delete."
+          fi
 
       - name: Deploy to EC2 QA Instance
         if: success()
