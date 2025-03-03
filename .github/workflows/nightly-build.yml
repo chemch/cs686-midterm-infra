@@ -199,6 +199,12 @@ jobs:
               fi
               echo "Smoke test passed!"
 
+      - name: Terminate Temporary EC2 Instance
+        if: always()
+        run: |
+          aws ec2 terminate-instances --instance-ids ${{ env.INSTANCE_ID }}
+          aws ec2 wait instance-terminated --instance-ids ${{ env.INSTANCE_ID }}
+
       - name: Remove Latest ECR Images on Test Failure
         if: failure()
         run: |
@@ -241,9 +247,3 @@ jobs:
             docker-compose down
             docker-compose pull
             docker-compose up -d
-
-      - name: Terminate Temporary EC2 Instance
-        if: always()
-        run: |
-          aws ec2 terminate-instances --instance-ids ${{ env.INSTANCE_ID }}
-          aws ec2 wait instance-terminated --instance-ids ${{ env.INSTANCE_ID }}
