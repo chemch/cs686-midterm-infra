@@ -26,7 +26,7 @@ jobs:
           echo "ENV_CONTENT=$ENV_CONTENT" >> $GITHUB_ENV
 
           # Encode docker-compose.yml as Base64
-          DOCKER_COMPOSE_CONTENT=$(base64 -w 0 sourece-repo/docker-compose.yml)
+          DOCKER_COMPOSE_CONTENT=$(base64 -w 0 source-repo/docker-compose.yml)
           echo "DOCKER_COMPOSE_CONTENT=$DOCKER_COMPOSE_CONTENT" >> $GITHUB_ENV
 
       - name: Set up Docker Buildx
