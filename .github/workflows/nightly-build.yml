@@ -159,27 +159,27 @@ jobs:
 
       - name: Start Docker Containers on EC2 and Run Smoke Test
         uses: appleboy/ssh-action@v0.1.10
-       with:
-          host: ${{ env.TEMP_IP }}
-          username: ec2-user
-          key: ${{ secrets.EC2_SSH_PRIVATE_KEY }}
-          script: |
-            set -e
-            cd /home/ec2-user/my-app
-            
-            # start docker containers
-            docker-compose down
-            docker-compose pull
-            docker-compose up -d --build
+        with:
+            host: ${{ env.TEMP_IP }}
+            username: ec2-user
+            key: ${{ secrets.EC2_SSH_PRIVATE_KEY }}
+            script: |
+              set -e
+              cd /home/ec2-user/my-app
+              
+              # start docker containers
+              docker-compose down
+              docker-compose pull
+              docker-compose up -d --build
 
-            # run smoke test
-            sleep 20  # Allow some time for services to start
-            RESPONSE=$(curl -s -o /dev/null -w "%{http_code}" http://${{ env.TEMP_IP }}:4001/)
-            if [ "$RESPONSE" -ne 200 ]; then
-              echo "Smoke test failed!"
-              exit 1
-            fi
-            echo "Smoke test passed!"
+              # run smoke test
+              sleep 20  # Allow some time for services to start
+              RESPONSE=$(curl -s -o /dev/null -w "%{http_code}" http://${{ env.TEMP_IP }}:4001/)
+              if [ "$RESPONSE" -ne 200 ]; then
+                echo "Smoke test failed!"
+                exit 1
+              fi
+              echo "Smoke test passed!"
 
       # - name: Terminate Temporary EC2 Instance
       #   if: always()
