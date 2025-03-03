@@ -16,10 +16,6 @@ jobs:
           cd source-repo
           git checkout main
           ls -al
-          # Read the local .env file into a variable
-          ENV_CONTENT=$(cat .env)
-          # Read the local docker-compose.yml file into a variable
-          DOCKER_COMPOSE_CONTENT=$(cat docker-compose.yml)
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v2
@@ -107,6 +103,18 @@ jobs:
           echo "ENV_CONTENT=$ENV_CONTENT" >> $GITHUB_ENV
           echo "DOCKER_COMPOSE_CONTENT=$DOCKER_COMPOSE_CONTENT" >> $GITHUB_ENV
 
+      - name: Read and Pass Local Files as Variables
+        run: |
+          echo "Reading environment files..."
+
+          # ✅ Encode .env file as Base64
+          ENV_CONTENT=$(base64 -w 0 source-repo/.env)
+          echo "ENV_CONTENT=$ENV_CONTENT" >> $GITHUB_ENV
+
+          # ✅ Encode docker-compose.yml as Base64
+          DOCKER_COMPOSE_CONTENT=$(base64 -w 0 sourece-repo/docker-compose.yml)
+          echo "DOCKER_COMPOSE_CONTENT=$DOCKER_COMPOSE_CONTENT" >> $GITHUB_ENV
+
       - name: Deploy to Temporary EC2 for Smoke Test
         uses: appleboy/ssh-action@v0.1.10
         with:
@@ -149,9 +157,11 @@ jobs:
             mkdir -p /home/ec2-user/my-app
            
             # Write the .env file
+            echo environment file content: $ENV_CONTENT |||||| "${{ env.ENV_CONTENT }}" 
             echo "${{ env.ENV_CONTENT }}" | base64 --decode > /home/ec2-user/my-app/.env
 
             # Decode and write the docker-compose.yml file
+            echo docker-compose file content: $DOCKER_COMPOSE_CONTENT |||||| "${{ env.DOCKER_COMPOSE_CONTENT }}"
             echo "${{ env.DOCKER_COMPOSE_CONTENT }}" | base64 --decode > /home/ec2-user/my-app/docker-compose.yml
 
       # - name: Deploy to Temporary EC2 for Smoke Test - Part 2
