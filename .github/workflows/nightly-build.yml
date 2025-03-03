@@ -103,6 +103,23 @@ jobs:
           echo "Temporary EC2 Public IP: $TEMP_IP"
           echo "TEMP_IP=$TEMP_IP" >> $GITHUB_ENV
 
+      - name: Wait for SSH to Become Available
+        run: |
+          echo "${{ secrets.EC2_SSH_PRIVATE_KEY }}" > private_key.pem
+          chmod 600 private_key.pem
+
+          echo "Waiting for SSH to become available on EC2..."
+
+          # Loop until SSH works, retrying every 10 seconds
+          until ssh -o StrictHostKeyChecking=no -o ConnectTimeout=10 -i private_key.pem ec2-user@${{ env.TEMP_IP }} "echo SSH Connection Successful"; do
+            echo "SSH is not ready yet. Retrying in 10 seconds..."
+            sleep 10
+          done
+
+          echo "SSH is now available. Proceeding with deployment."
+
+          rm private_key.pem
+
       - name: Deploy Dependencies to EC2 for Testing
         uses: appleboy/ssh-action@v0.1.10
         with:
