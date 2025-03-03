@@ -142,10 +142,12 @@ jobs:
           echo "${{ secrets.EC2_SSH_PRIVATE_KEY }}" > private_key.pem
           chmod 600 private_key.pem
 
-         scp -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -i private_key.pem source-repo/.env ec2-user@${{ env.TEMP_IP }}:/home/ec2-user/my-app/.env
+          echo "Copying files to EC2..."
+          scp -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -i private_key.pem source-repo/.env ec2-user@${{ env.TEMP_IP }}:/home/ec2-user/my-app/.env
           scp -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -i private_key.pem source-repo/docker-compose.yml ec2-user@${{ env.TEMP_IP }}:/home/ec2-user/my-app/docker-compose.yml
           
           # Remove private key after use for security
+          echo "Removing private key..."
           rm private_key.pem
 
       # - name: Deploy to Temporary EC2 for Smoke Test - Part 2
