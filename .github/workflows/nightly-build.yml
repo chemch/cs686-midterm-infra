@@ -96,7 +96,7 @@ jobs:
           echo "Temporary EC2 Public IP: $TEMP_IP"
           echo "TEMP_IP=$TEMP_IP" >> $GITHUB_ENV
 
-      - name: Deploy to Temporary EC2 for Smoke Test
+      - name: Deploy Dependencies to EC2 for Testing
         uses: appleboy/ssh-action@v0.1.10
         with:
           host: ${{ env.TEMP_IP }}
@@ -137,12 +137,12 @@ jobs:
             # Create a directory for the application
             mkdir -p /home/ec2-user/my-app
 
-        - name: Clone Infra Repository
-          run: |
-            git clone https://github.com/chemch/cs686-midterm-infra.git infra-repo
-            cd infra-repo
-            git checkout main
-            ls -al 
+      - name: Clone Infra Repository
+        run: |
+          git clone https://github.com/chemch/cs686-midterm-infra.git infra-repo
+          cd infra-repo
+          git checkout main
+          ls -al 
            
       - name: Copy .env and docker-compose.yml to EC2
         run: |
@@ -150,33 +150,36 @@ jobs:
           chmod 600 private_key.pem
 
           echo "Copying files to EC2..."
-          scp -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -i private_key.pem source-repo/.env ec2-user@${{ env.TEMP_IP }}:/home/ec2-user/my-app/.env
-          scp -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -i private_key.pem source-repo/docker-compose.yml ec2-user@${{ env.TEMP_IP }}:/home/ec2-user/my-app/docker-compose.yml
+          scp -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -i private_key.pem infra-repo/.env ec2-user@${{ env.TEMP_IP }}:/home/ec2-user/my-app/.env
+          scp -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -i private_key.pem infra-repo/docker-compose.yml ec2-user@${{ env.TEMP_IP }}:/home/ec2-user/my-app/docker-compose.yml
           
           # Remove private key after use for security
           echo "Removing private key..."
           rm private_key.pem
 
-      # - name: Deploy to Temporary EC2 for Smoke Test - Part 2
-      #   uses: appleboy/ssh-action@v0.1.10
-      #  with:
-      #     host: ${{ env.TEMP_IP }}
-      #     username: ec2-user
-      #     key: ${{ secrets.EC2_SSH_PRIVATE_KEY }}
-      #     script: |
-      #       set -e
-      #       cd /home/ec2-user/my-app
-      #       docker-compose up -d
+      - name: Start Docker Containers on EC2 and Run Smoke Test
+        uses: appleboy/ssh-action@v0.1.10
+       with:
+          host: ${{ env.TEMP_IP }}
+          username: ec2-user
+          key: ${{ secrets.EC2_SSH_PRIVATE_KEY }}
+          script: |
+            set -e
+            cd /home/ec2-user/my-app
+            
+            # start docker containers
+            docker-compose down
+            docker-compose pull
+            docker-compose up -d --build
 
-      # - name: Run Smoke Test
-      #   run: |
-      #     sleep 20  # Allow some time for services to start
-      #     RESPONSE=$(curl -s -o /dev/null -w "%{http_code}" http://${{ env.TEMP_IP }}:4001/)
-      #     if [ "$RESPONSE" -ne 200 ]; then
-      #       echo "Smoke test failed!"
-      #       exit 1
-      #     fi
-      #     echo "Smoke test passed!"
+            # run smoke test
+            sleep 20  # Allow some time for services to start
+            RESPONSE=$(curl -s -o /dev/null -w "%{http_code}" http://${{ env.TEMP_IP }}:4001/)
+            if [ "$RESPONSE" -ne 200 ]; then
+              echo "Smoke test failed!"
+              exit 1
+            fi
+            echo "Smoke test passed!"
 
       # - name: Terminate Temporary EC2 Instance
       #   if: always()
