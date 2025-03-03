@@ -100,6 +100,13 @@ jobs:
           echo "Temporary EC2 Public IP: $TEMP_IP"
           echo "TEMP_IP=$TEMP_IP" >> $GITHUB_ENV
 
+      - name: Read and Pass Local Files as Variables
+        run: |
+          ENV_CONTENT=$(cat .env | base64)
+          DOCKER_COMPOSE_CONTENT=$(cat docker-compose.yml | base64)
+          echo "ENV_CONTENT=$ENV_CONTENT" >> $GITHUB_ENV
+          echo "DOCKER_COMPOSE_CONTENT=$DOCKER_COMPOSE_CONTENT" >> $GITHUB_ENV
+
       - name: Deploy to Temporary EC2 for Smoke Test
         uses: appleboy/ssh-action@v0.1.10
         with:
@@ -140,9 +147,12 @@ jobs:
             
             # Create a directory for the application
             mkdir -p /home/ec2-user/my-app
-            echo "$ENV_CONTENT"
-            echo "$ENV_CONTENT" > /home/ec2-user/my-app/.env
-            echo "$DOCKER_COMPOSE_CONTENT" > /home/ec2-user/my-app/docker-compose.yml
+           
+            # Write the .env file
+            echo "${{ env.ENV_CONTENT }}" | base64 --decode > /home/ec2-user/my-app/.env
+
+            # Decode and write the docker-compose.yml file
+            echo "${{ env.DOCKER_COMPOSE_CONTENT }}" | base64 --decode > /home/ec2-user/my-app/docker-compose.yml
 
       # - name: Deploy to Temporary EC2 for Smoke Test - Part 2
       #   uses: appleboy/ssh-action@v0.1.10
